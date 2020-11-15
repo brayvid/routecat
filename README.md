@@ -1,6 +1,6 @@
 # AlleyCatRoute
 
-Demonstration: https://acroute.netlify.app
+Demo: https://acroute.netlify.app
 
 ## License
 &copy; 2020 Blake Rayvid. Non-commercial use only.
