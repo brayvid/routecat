@@ -3,7 +3,7 @@
 Demo: https://acroute.netlify.app
 
 ## License
-&copy; 2020 Blake Rayvid. Non-commercial use only.
+Non-commercial use only.
 
 ## Directory
 * `index.html`
