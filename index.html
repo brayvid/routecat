@@ -142,9 +142,17 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
     <script src="src/acroute.js"></script>
 
     <!-- Google Maps JS API -->
-    <script
-        src=`https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&callback=googleReady`
-        async defer></script>
+    <script type="text/javascript"> 
+        var JSLink = `https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&callback=googleReady`;
+        var JSElement = document.createElement('script');
+        JSElement.src = JSLink;
+        JSElement.onload = OnceLoaded;
+        document.getElementsByTagName('head')[0].appendChild(JSElement);
+    
+        function OnceLoaded() {
+            // Once loaded.. load other JS or CSS or call objects of version.js
+        }
+    </script>
 </head>
 
 <body>
