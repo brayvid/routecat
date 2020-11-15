@@ -15,12 +15,9 @@
     numFields = 0,
     colors,
     numDrivers,
-    matrixService,
     directionsService,
-    placesService,
     map,
     mapOptions,
-    orders,
     addressArray,
     groups,
     orderedGroups,
@@ -31,15 +28,11 @@
     startVal,
     stopVal,
     locality,
-    ocrText,
-    splitted,
     coords,
     geocoder;
 
-/* Sends distance matrix request */
+/* Sends route request */
 function requestRoute() {
-    // get order IDs and addresses from fields
-    orders = [];
     addressArray = [];
 
     locality = document.getElementById("city").value;
@@ -60,10 +53,8 @@ function requestRoute() {
     }
 
     for (let i = 1; i < (numFields + 1); i++) {
-        let nTemp = i.toString();
         let aTemp = document.getElementById("a" + i).value;
-        if (nTemp.match(/\S/) && aTemp.match(/\S/)) {
-            // orders.push(new Order(nTemp, aTemp + ", " + locality));
+        if (aTemp.match(/\S/)) {
             addressArray.push(aTemp + ", " + locality);
         }
     }
@@ -74,6 +65,12 @@ function requestRoute() {
         document.getElementById("map").innerHTML = "Enter at least one waypoint.";
         return;
     }
+
+    // if (coords === undefined){
+    //     document.getElementById("map").style.height = "30px";
+    //     document.getElementById("map").innerHTML = "Can't connect to Google.";
+    //     return;
+    // }
     // Initialize variables
     numDrivers = 1;
     directionsCounter = 0;
@@ -248,14 +245,6 @@ function results() {
     // Results have been printed to screen, process is complete.
 }
 
-/* Holds info for each inputted order */
-class Order {
-    constructor(name, address) {
-        this.name = name;
-        this.address = address;
-    }
-}
-
 /* Called when google cloud API has loaded */
 function googleReady() {
     directionsService = new google.maps.DirectionsService();
@@ -265,6 +254,16 @@ function googleReady() {
     console.log("Geocoder ready.");
     getLocation();
 }
+
+
+function getLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(geocodeLatLng);
+    } else {
+        document.getElementById("startAddress").value = "Unknown";
+    }
+}
+
 
 /* Returns a random integer from min to max inclusively */
 function uniformRandomInt(min, max) {
@@ -302,7 +301,6 @@ function addField() {
         din.appendChild(inp);
         d.appendChild(din)
     }
-
     document.getElementById("fields").appendChild(d);
     numFields++;
 }
@@ -356,17 +354,7 @@ function geocodeLatLng(pos) {
         if (status === "OK") {
             if (results[0]) {
                 document.getElementById("startAddress").value = results[0].formatted_address;
-            } else {
             }
-        } else {
         }
     });
-}
-
-function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(geocodeLatLng);
-    } else {
-        document.getElementById("startAddress").value = "Unknown";
-    }
 }
