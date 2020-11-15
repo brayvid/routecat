@@ -2,11 +2,21 @@
     Usage: (c) 2020 Blake Rayvid. Non-commercial use only.
     Author: Blake Rayvid (https//github.com/brayvid)  */
 
-var numFields = 0,
+    var initialInputRows = 6,
+    transportation = 'BICYCLING', // or 'DRIVING' or 'WALKING'
+    dropoffSeconds = 30, // rough time stopped at a waypoint
+    defaultColors = [
+        "#e6194B",
+        "#3cb44b",
+        "#4363d8",
+        "#9A6324",
+        "#f032e6"
+    ],
+    numFields = 0,
     colors,
     numDrivers,
     matrixService,
-    directionService,
+    directionsService,
     placesService,
     map,
     mapOptions,
@@ -27,12 +37,10 @@ var numFields = 0,
     geocoder;
 
 /* Sends distance matrix request */
-function requestMatrix(orderCount) {
+function requestRoute() {
     // get order IDs and addresses from fields
     orders = [];
     addressArray = [];
-
-    // splitted = ocrText
 
     locality = document.getElementById("city").value;
     if (locality == "") {
@@ -43,7 +51,7 @@ function requestMatrix(orderCount) {
 
     if (startVal == '') {
         document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter a starting address.";
+        document.getElementById("map").innerHTML = "Enter a starting location.";
         return;
     } else {
         if (stopVal == '') {
@@ -55,15 +63,15 @@ function requestMatrix(orderCount) {
         let nTemp = i.toString();
         let aTemp = document.getElementById("a" + i).value;
         if (nTemp.match(/\S/) && aTemp.match(/\S/)) {
-            orders.push(new Order(nTemp, aTemp + ", " + locality));
+            // orders.push(new Order(nTemp, aTemp + ", " + locality));
             addressArray.push(aTemp + ", " + locality);
         }
     }
 
     // Don't process when all fields are empty or only one order present
-    if (orders.length < 2) {
+    if (addressArray.length < 1) {
         document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter at least two waypoints.";
+        document.getElementById("map").innerHTML = "Enter at least one waypoint.";
         return;
     }
     // Initialize variables
@@ -90,132 +98,12 @@ function requestMatrix(orderCount) {
         console.log(addressArray[i]);
     }
 
-    // Get distance matrix for this set of orders
-    let matrixRequest = {
-        // origins same as destinations
-        origins: [startVal + ", " + locality].concat(addressArray),
-        destinations: [stopVal + ", " + locality].concat(addressArray),
-        travelMode: transportation,
-    };
-
-    matrixService.getDistanceMatrix(matrixRequest, matrixCallback);
+    let addressList = [startVal, stopVal];
+    addressList.push(addressArray)
+    
+    requestRoutes(addressList);
 
     $(".collapse").collapse('show');
-}
-
-/* Runs when distance matrix is received */
-function matrixCallback(response, status) {
-    if (status == 'OK') {
-        // console.log("Distance matrix received.");
-        cluster(response.rows); // determine groups
-        addressGroups = new Array(groups.length);
-        numGroups = groups.length;
-        for (let i = 0; i < groups.length; i++) {
-            addressGroups[i] = [];
-            console.log("Group " + (i + 1) + ":");
-            for (let j = 0; j < groups[i].length; j++) {
-                let currentAddress = addressArray[groups[i][j] - 1];
-                console.log(currentAddress);
-                addressGroups[i].push(currentAddress);
-            }
-            requestRoutes(addressGroups[i]);
-        }
-    } else {
-        document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Distance matrix request unsuccessful: " + status;
-    }
-}
-
-/* Clustering process */
-function cluster(rows) {
-    // Consolidate travel times (by bike) into a 2D array, rows = origins, cols = dests.
-    let matrixTimes = [];
-    let averageTimes = [];
-    for (let i = 0; i < rows.length; i++) {
-        matrixTimes.push([]);
-        averageTimes.push([]);
-        for (let j = 0; j < rows.length; j++) {
-            matrixTimes[i].push(rows[i].elements[j].duration.value);
-            averageTimes[i].push(0);
-        }
-    }
-
-    // Average the forward and reverse times for each pair of addresses
-    for (let i = 0; i < matrixTimes.length; i++) {
-        for (let j = 0; j < matrixTimes.length; j++) {
-            if (j < i) {
-                averageTimes[j][i] = 0;
-            } else {
-                averageTimes[j][i] = (matrixTimes[i][j] + matrixTimes[j][i]) / 2;
-            }
-        }
-    }
-
-    // Hierarchical agglomerative clustering
-    let activeSet = [];
-    for (let i = 0; i < rows.length - 1; i++) {
-        activeSet.push([i + 1]);
-    }
-
-    while (activeSet.length > numDrivers) {
-        let minDist = 999999999,
-            closestGroup1, closestGroup2,
-            group1Index, group2Index; // for argmin
-
-        // compare distance between each group in activeSet
-        for (let i = 0; i < activeSet.length - 1; i++) {
-            for (let j = i + 1; j < activeSet.length; j++) {
-                let d = averageClusterDistance(activeSet[i], activeSet[j], averageTimes);
-                if (d < minDist) {
-                    closestGroup1 = activeSet[i];
-                    group1Index = i;
-                    closestGroup2 = activeSet[j];
-                    group2Index = j;
-                    minDist = d;
-                }
-            }
-        }
-
-        // Remove individual members (from end of array first)
-        if (group1Index > group2Index) {
-            activeSet.splice(group1Index, 1);
-            activeSet.splice(group2Index, 1);
-        } else {
-            activeSet.splice(group2Index, 1);
-            activeSet.splice(group1Index, 1);
-        }
-
-        // Add newly formed composite group containing members just removed
-        let setToAdd = closestGroup1.concat(closestGroup2);
-
-        activeSet.push(setToAdd);
-    }
-    // End clustering
-
-    groups = activeSet;
-    // let groups = activeSet;
-    // Sort each group so the lowest-numbered order is first
-    for (let i = 0; i < groups.length; i++) {
-        groups[i].sort();
-    }
-}
-
-/* Distance function for clustering */
-function averageClusterDistance(X, Y, M) {
-    // X, Y are 1D arrays representing groups; they contain the indices (w/r averageTimes matrix) of the orders in their group
-    let n = X.length;
-    let m = Y.length;
-    let den = n * m;
-    let outerSum = 0;
-    for (let i = 0; i < n; i++) {
-        let innerSum = 0;
-        for (let j = 0; j < m; j++) {
-            let dist = M[Math.max(X[i], Y[j])][Math.min(X[i], Y[j])];
-            innerSum += dist;
-        }
-        outerSum += innerSum;
-    }
-    return outerSum / den;
 }
 
 /* Sends directions request */
@@ -237,11 +125,11 @@ function requestRoutes(addresses) {
         provideRouteAlternatives: false,
     };
 
-    directionService.route(directionsRequest, directionsCallback);
+    directionsService.route(directionsRequest, routeCallback);
 }
 
 /* Runs whenever directions are received */
-function directionsCallback(response, status) {
+function routeCallback(response, status) {
     if (status === 'OK') {
         directionsCounter++;
         // console.log("Route received.");
@@ -368,37 +256,14 @@ class Order {
     }
 }
 
-class Store {
-    constructor(address, latLong) {
-        this.address = address;
-        this.latLong = latLong;
-    }
-}
-
 /* Called when google cloud API has loaded */
 function googleReady() {
-    matrixService = new google.maps.DistanceMatrixService();
-    directionService = new google.maps.DirectionsService();
+    directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
-    // console.log("Delivery Assignment Testing");
-    console.log("Distance matrix service ready.");
+    // console.log("Distance matrix service ready.");
     console.log("Directions service ready.");
     console.log("Geocoder ready.");
     getLocation();
-}
-
-/* Checks array equality */
-function arraysMatch(arr1, arr2) {
-    // Check if the arrays are the same length
-    if (arr1.length !== arr2.length) return false;
-
-    // Check if all items exist and are in the same order
-    for (let i = 0; i < arr1.length; i++) {
-        if (arr1[i] !== arr2[i]) return false;
-    }
-
-    // Otherwise, return true
-    return true;
 }
 
 /* Returns a random integer from min to max inclusively */
@@ -406,26 +271,6 @@ function uniformRandomInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
     return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-/* Randomizes an array */
-function shuffle(arr) {
-    var currentIndex = arr.length,
-        temporaryValue, randomIndex;
-
-    // While there remain elements to shuffle
-    while (0 !== currentIndex) {
-
-        // Pick a remaining element
-        randomIndex = Math.floor(Math.random() * currentIndex);
-        currentIndex -= 1;
-
-        // Swap it with the current element
-        temporaryValue = arr[currentIndex];
-        arr[currentIndex] = arr[randomIndex];
-        arr[randomIndex] = temporaryValue;
-    }
-    return arr;
 }
 
 /* Adds a new row of input fields on the bottom */
@@ -487,9 +332,7 @@ function makeEndptFields() {
         din.appendChild(inp);
         d.appendChild(din)
     }
-
     document.getElementById("start").appendChild(d);
-    // numFields++;
 }
 
 /* Removes the last row of input fields */
@@ -502,7 +345,6 @@ function removeField() {
 }
 
 function geocodeLatLng(pos) {
-    // console.log(pos)
     const latlng = {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
@@ -514,13 +356,9 @@ function geocodeLatLng(pos) {
         if (status === "OK") {
             if (results[0]) {
                 document.getElementById("startAddress").value = results[0].formatted_address;
-                // infowindow.setContent();
-                // infowindow.open(map, marker);
             } else {
-                // window.alert("No results found");
             }
         } else {
-            // window.alert("Geocoder failed due to: " + status);
         }
     });
 }
