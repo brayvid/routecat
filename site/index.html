@@ -146,12 +146,12 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
         var JSLink = `https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&callback=googleReady`;
         var JSElement = document.createElement('script');
         JSElement.src = JSLink;
-        JSElement.onload = OnceLoaded;
+        // JSElement.onload = OnceLoaded;
         document.getElementsByTagName('head')[0].appendChild(JSElement);
     
-        function OnceLoaded() {
-            // Once loaded.. load other JS or CSS or call objects of version.js
-        }
+        // function OnceLoaded() {
+        //     // Once loaded.. load other JS or CSS or call objects of version.js
+        // }
     </script>
 </head>
 
