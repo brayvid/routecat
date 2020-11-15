@@ -146,12 +146,7 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
         var JSLink = `https://maps.googleapis.com/maps/api/js?key=${process.env.API_KEY}&callback=googleReady`;
         var JSElement = document.createElement('script');
         JSElement.src = JSLink;
-        // JSElement.onload = OnceLoaded;
         document.getElementsByTagName('head')[0].appendChild(JSElement);
-    
-        // function OnceLoaded() {
-        //     // Once loaded.. load other JS or CSS or call objects of version.js
-        // }
     </script>
 </head>
 
@@ -165,7 +160,7 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
             <br>
 
             <!-- <input id="uploader" type="file" accept="image/*" capture="camera" class="uploadButton"> -->
-            <input id="uploader" class="uploadButton" type="file" accept="image/*">
+            <!-- <input id="uploader" class="uploadButton" type="file" accept="image/*"> -->
 
             <form id="start" class=".w-auto">
             </form>
@@ -225,71 +220,10 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
             for (let r = 0; r < initialInputRows; r++) {
                 addField();
             }
-
             // "Assign" button shows display
             $("#assign").click(function () {
                 $(".collapse").collapse('show');
             });
-
-            // var GCVUrl =
-            //     'https://vision.googleapis.com/v1/images:annotate?key=[KEY_HERE]';
-            // var input = document.querySelector('input[type=file]');
-            // var fileReader = new FileReader();
-
-            // input.onchange = function (event) {
-
-            //     var file = event.target.files[0];
-
-            //     fileReader.onload = function (fileLoadedEvent) {
-            //         var GCVRequest = {
-            //             requests: [{
-            //                 image: {
-            //                     content: fileLoadedEvent.target.result.split(',')[1]
-            //                     // must discard `data:image/png;base64,`
-            //                 },
-            //                 features: [{
-            //                     type: 'DOCUMENT_TEXT_DETECTION'
-            //                 }]
-            //             }]
-            //         };
-
-            //         $.ajax({
-            //             type: 'POST',
-            //             url: GCVUrl,
-            //             dataType: 'json',
-            //             contentType: 'application/json',
-            //             data: JSON.stringify(GCVRequest),
-            //             success: function (data) {
-            //                 var texts;
-            //                 if (texts = data.responses[0].textAnnotations) {
-            //                     ocrText = texts[0].description.split("\n");
-            //                     i = 0; // Current read
-            //                     j = 0; // Current write
-            //                     while (i <= ocrText.length) {
-            //                         if (ocrText[i] != "" && ocrText[i] != "\n") {
-            //                             document.getElementById('a' + (j + 1)).value =
-            //                                 ocrText[i];
-            //                             j++;
-            //                         }
-            //                         i++;
-            //                     }
-            //                 } else {
-            //                     alert('No text was recognized');
-            //                 }
-            //             },
-            //             error: function (jqXhr, textStatus, error) {
-            //                 alert('XHR error: ' + jqXhr.responseJSON.error.message);
-            //             }
-            //         });
-
-            //     };
-
-            //     fileReader.readAsDataURL(file);
-
-            // };
-
-            // myInput.addEventListener('change', recognize);
-
         });
     </script>
 </body>
