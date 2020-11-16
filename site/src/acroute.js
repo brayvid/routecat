@@ -21,7 +21,6 @@
     map,
     mapOptions,
     addressArray,
-    groups,
     orderedGroups,
     orderedColors,
     routeDurations,
@@ -187,7 +186,7 @@ function routeCallback(response, status) {
             icon: 'img/pins/number_0.png'
           });
 
-          
+
         // Update table
         results();
         document.getElementById("map").style.height = "300px";
