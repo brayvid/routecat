@@ -1,5 +1,6 @@
-/*  Title: ACRoute v1.1   
-    Usage: (c) 2020 Blake Rayvid. Non-commercial use only.
+/*  Title: ACRoute
+    Version: 1.2   
+    License: (c) 2020 Blake Rayvid. Non-commercial use only.
     Author: Blake Rayvid (https//github.com/brayvid)  */
 
     var initialInputRows = 6,
@@ -169,7 +170,7 @@ function routeCallback(response, status) {
 function results() {
     // Print average route duration to console
     // let avg = 0;
-    console.log("Results:");
+    // console.log("Results:");
     for (let i = 0; i < routeDurations.length; i++) {
         let minutes = routeDurations[i] / 60;
         // avg += minutes;
@@ -212,6 +213,7 @@ function results() {
 function googleReady() {
     directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
+    console.log("Google Maps API ready.")
     getLocation();
 }
 
