@@ -158,7 +158,13 @@ function routeCallback(response, status) {
             suppressBicyclingLayer: true
         });
         directionsRenderer.setDirections(response);
-
+        
+        // Waypoint markers
+        let origMarker = new google.maps.Marker({
+            position: legs[0].start_location,
+            map,
+            icon: 'img/pins/start.png'
+          });
         let otherMarkers = [];
         for (let i = 1; i < legs.length + 1; i++){
             if(i==legs.length){
@@ -166,7 +172,7 @@ function routeCallback(response, status) {
                     new google.maps.Marker({
                         position: legs[i-1].end_location,
                         map,
-                        icon: 'img/pins/destination.png'
+                        icon: 'img/pins/stop.png'
                       })
                 );
             }else{
@@ -174,17 +180,11 @@ function routeCallback(response, status) {
                     new google.maps.Marker({
                         position: legs[i-1].end_location,
                         map,
-                        icon: 'img/pins/number_'+i+'.png'
+                        icon: 'https://chart.apis.google.com/chart?chst=d_map_pin_letter&chld='+i+'|ff0000|000000'
                       })
                 );
             }
         }
-
-        let origMarker = new google.maps.Marker({
-            position: legs[0].start_location,
-            map,
-            icon: 'img/pins/number_0.png'
-          });
 
 
         // Update table
