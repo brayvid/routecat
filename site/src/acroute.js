@@ -22,21 +22,21 @@
     groups,
     orderedGroups,
     orderedColors,
-    addressGroups,
     routeDurations,
-    directionsCounter,
     startVal,
     stopVal,
     locality,
     coords,
-    geocoder;
+    geocoder,
+    route,
+    autoStartAddress = false;
 
 /* Sends route request */
 function requestRoute() {
     addressArray = [];
 
     locality = document.getElementById("city").value;
-    if (locality == "") {
+    if (locality == '') {
         locality = "New York, NY";
     }
     startVal = document.getElementById("startAddress").value;
@@ -73,7 +73,6 @@ function requestRoute() {
     // }
     // Initialize variables
     numDrivers = 1;
-    directionsCounter = 0;
     orderedGroups = [];
     colors = defaultColors;
     orderedColors = [];
@@ -89,33 +88,28 @@ function requestRoute() {
         gestureHandling: 'cooperative'
     };
     map = new google.maps.Map(document.getElementById("map"), mapOptions);
-
-    console.log("Addresses:");
-    for (let i = 0; i < addressArray.length; i++) {
-        console.log(addressArray[i]);
-    }
-
-    let addressList = [startVal, stopVal];
-    addressList.push(addressArray)
     
-    requestRoutes(addressList);
-
-    $(".collapse").collapse('show');
-}
-
-/* Sends directions request */
-function requestRoutes(addresses) {
     let waypts = [];
-    for (let j = 0; j < addresses.length; j++) {
+    for (let i = 0; i < addressArray.length; i++) {
         waypts.push({
-            location: addresses[j],
+            location: addressArray[i] + ', ' + locality,
             stopover: true
         });
     }
 
+    let originVal, destVal;
+
+    if (autoStartAddress){
+        originVal = startVal;
+        destVal = stopVal;
+    }else{
+       originVal = startVal + ', ' + locality;
+        destVal = stopVal + ', ' + locality;
+    }
+
     let directionsRequest = {
-        origin: startVal + ', ' + locality,
-        destination: stopVal + ', ' + locality,
+        origin: originVal,
+        destination: destVal,
         travelMode: transportation,
         waypoints: waypts,
         optimizeWaypoints: true,
@@ -123,19 +117,20 @@ function requestRoutes(addresses) {
     };
 
     directionsService.route(directionsRequest, routeCallback);
+
+    $(".collapse").collapse('show');
 }
 
 /* Runs whenever directions are received */
 function routeCallback(response, status) {
     if (status === 'OK') {
-        directionsCounter++;
         // console.log("Route received.");
         let randInt = uniformRandomInt(0, colors.length - 1);
         let color = colors[randInt];
         colors.splice(randInt, 1);
         orderedColors.push(color);
         // Get route duration
-        let route = response.routes[0];
+        route = response.routes[0];
         let legs = route.legs;
         let duration = 0;
         for (let k = 0; k < legs.length; k++) {
@@ -161,12 +156,9 @@ function routeCallback(response, status) {
         });
         directionsRenderer.setDirections(response);
 
-        // Final callback was executed
-        if (directionsCounter == groups.length) {
-            // Update table
-            results();
-            document.getElementById("map").style.height = "300px";
-        }
+        // Update table
+        results();
+        document.getElementById("map").style.height = "300px";
     } else {
         document.getElementById("map").style.height = "30px";
         document.getElementById("map").innerHTML = "Directions request unsuccessful: " + status;
@@ -176,43 +168,12 @@ function routeCallback(response, status) {
 /* Updates table and console */
 function results() {
     // Print average route duration to console
-    let avg = 0;
+    // let avg = 0;
     console.log("Results:");
     for (let i = 0; i < routeDurations.length; i++) {
         let minutes = routeDurations[i] / 60;
-        avg += minutes;
+        // avg += minutes;
         console.log("Route duration: " + minutes.toFixed(2) + " min");
-    }
-    avg = avg / routeDurations.length;
-    console.log("Average time: " + avg.toFixed(2) + " min");
-
-    // Find max orders per driver over all drivers, aka number of rows of table to generate
-    let maxToOneDriver = 0;
-    let ordersPerDriver = [];
-    for (let i = 0; i < groups.length; i++) {
-        ordersPerDriver.push(groups[i].length);
-        if (groups[i].length > maxToOneDriver) {
-            maxToOneDriver = groups[i].length;
-        }
-    }
-
-    // If there are fewer groups than drivers, set order counts for extra drivers to 0
-    for (let i = 0; i < numDrivers - ordersPerDriver.length; i++) {
-        ordersPerDriver.push(0);
-    }
-
-    // Determine if an order will be placed at each table entry
-    let assignMap = [];
-    for (let i = 0; i < maxToOneDriver; i++) { // for each row
-        assignMap.push([]);
-        for (j = 0; j < numDrivers; j++) { // for each column
-            assignMap[i][j] = 0; // set to 0 to start
-            if (ordersPerDriver[j] > 0) {
-                // The current driver has orders still to list
-                assignMap[i][j] = 1;
-                ordersPerDriver[j] -= 1;
-            }
-        }
     }
 
     // Table header
@@ -229,19 +190,21 @@ function results() {
     }
 
     // Table body
-    for (let i = 0; i < maxToOneDriver; i++) { //  each row
+    for (let i = 0; i < route.legs.length; i++) { //  each row
         let bodyNode = document.createElement("TR");
-        for (let j = 0; j < numDrivers; j++) {
-            let bodyData = document.createElement("TD");
-            if (assignMap[i][j] == 1) {
-                let bodyText = document.createTextNode(orders[groups[j][orderedGroups[j][i]] - 1].address);
-                // counter[j]++;
-                bodyData.appendChild(bodyText);
-            }
-            bodyNode.appendChild(bodyData);
-        }
+        let bodyData = document.createElement("TD");
+        let bodyText= document.createTextNode(route.legs[i].start_address);
+        bodyData.appendChild(bodyText);
+        bodyNode.appendChild(bodyData);
         document.getElementById("tablebody").appendChild(bodyNode);
     }
+    let bodyNode = document.createElement("TR");
+    let bodyData = document.createElement("TD");
+    bodyData.appendChild(document.createTextNode(route.legs[route.legs.length-1].end_address));
+    bodyNode.appendChild(bodyData);
+    document.getElementById("tablebody").appendChild(bodyNode);
+    
+
     // Results have been printed to screen, process is complete.
 }
 
@@ -249,9 +212,6 @@ function results() {
 function googleReady() {
     directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
-    // console.log("Distance matrix service ready.");
-    console.log("Directions service ready.");
-    console.log("Geocoder ready.");
     getLocation();
 }
 
@@ -355,6 +315,7 @@ function geocodeLatLng(pos) {
             if (results[0]) {
                 document.getElementById("startAddress").value = results[0].formatted_address;
             }
+            autoStartAddress = true;
         }
     });
 }
