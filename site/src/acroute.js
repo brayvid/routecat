@@ -11,7 +11,8 @@
         "#3cb44b",
         "#4363d8",
         "#9A6324",
-        "#f032e6"
+        "#f032e6",
+        "#e6194B"
     ],
     numFields = 0,
     colors,
@@ -44,6 +45,7 @@ function requestRoute() {
     stopVal = document.getElementById("stopAddress").value;
 
     if (startVal == '') {
+        document.getElementById("tbl").innerHTML = '';
         document.getElementById("map").style.height = "30px";
         document.getElementById("map").innerHTML = "Enter a starting location.";
         return;
@@ -62,6 +64,7 @@ function requestRoute() {
 
     // Don't process when all fields are empty or only one order present
     if (addressArray.length < 1) {
+        document.getElementById("tbl").innerHTML = '';
         document.getElementById("map").style.height = "30px";
         document.getElementById("map").innerHTML = "Enter at least one waypoint.";
         return;
@@ -157,6 +160,34 @@ function routeCallback(response, status) {
         });
         directionsRenderer.setDirections(response);
 
+        let otherMarkers = [];
+        for (let i = 1; i < legs.length + 1; i++){
+            if(i==legs.length){
+                otherMarkers.push(
+                    new google.maps.Marker({
+                        position: legs[i-1].end_location,
+                        map,
+                        icon: 'img/pins/destination.png'
+                      })
+                );
+            }else{
+                otherMarkers.push(
+                    new google.maps.Marker({
+                        position: legs[i-1].end_location,
+                        map,
+                        icon: 'img/pins/number_'+i+'.png'
+                      })
+                );
+            }
+        }
+
+        let origMarker = new google.maps.Marker({
+            position: legs[0].start_location,
+            map,
+            icon: 'img/pins/number_0.png'
+          });
+
+          
         // Update table
         results();
         document.getElementById("map").style.height = "300px";
@@ -168,20 +199,11 @@ function routeCallback(response, status) {
 
 /* Updates table and console */
 function results() {
-    // Print average route duration to console
-    // let avg = 0;
-    // console.log("Results:");
-    for (let i = 0; i < routeDurations.length; i++) {
-        let minutes = routeDurations[i] / 60;
-        // avg += minutes;
-        console.log("Route duration: " + minutes.toFixed(2) + " min");
-    }
-
     // Table header
     document.getElementById("tbl").innerHTML = '<table id="displayTable" class="table table-condensed"><tbody id="tablebody"></tbody></table>';
     for (let i = 0; i < numDrivers; i++) {
         let headNode = document.createElement("TH");
-        let headText = document.createTextNode("Best route");
+        let headText = document.createTextNode("Best route (" + (routeDurations[i] / 60).toFixed(1) + " mins)");
         // let headColor = document.createElement("SPAN");
         // headColor.innerHTML = " ";
         headNode.appendChild(headText);
@@ -191,20 +213,19 @@ function results() {
     }
 
     // Table body
-    for (let i = 0; i < route.legs.length; i++) { //  each row
+    for (let i = 1; i < route.legs.length; i++) { //  each row
         let bodyNode = document.createElement("TR");
         let bodyData = document.createElement("TD");
-        let bodyText= document.createTextNode(route.legs[i].start_address);
+        let bodyText= document.createTextNode((i).toString()+") "+route.legs[i].start_address);
         bodyData.appendChild(bodyText);
         bodyNode.appendChild(bodyData);
         document.getElementById("tablebody").appendChild(bodyNode);
     }
     let bodyNode = document.createElement("TR");
     let bodyData = document.createElement("TD");
-    bodyData.appendChild(document.createTextNode(route.legs[route.legs.length-1].end_address));
+    bodyData.appendChild(document.createTextNode("🛑 "+route.legs[route.legs.length-1].end_address));
     bodyNode.appendChild(bodyData);
     document.getElementById("tablebody").appendChild(bodyNode);
-    
 
     // Results have been printed to screen, process is complete.
 }
@@ -213,7 +234,7 @@ function results() {
 function googleReady() {
     directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
-    console.log("Google Maps API ready.")
+    console.log("Google Maps is ready.")
     getLocation();
 }
 
@@ -289,6 +310,13 @@ function makeEndptFields() {
             inp.setAttribute("placeholder", "(Finish)");
             inp.setAttribute("id", "stopAddress");
         }
+        inp.addEventListener("keyup", function (event) {
+            // Enter key clicks assign button when any input field is selected
+            if (event.keyCode === 13) {
+                event.preventDefault();
+                document.getElementById("assign").click();
+            }
+        });
         din.appendChild(inp);
         d.appendChild(din)
     }
