@@ -28,7 +28,6 @@
     coords,
     geocoder,
     route;
-    // autoStartAddress = false;
 
 /* Sends route request */
 function requestRoute() {
