@@ -1,5 +1,4 @@
-/*  Title: ACRoute
-    Version: 1.2   
+/*  Title: CatRoute
     License: (c) 2020 Blake Rayvid. Non-commercial use only.
     Author: Blake Rayvid (https//github.com/brayvid)  */
 
@@ -26,20 +25,14 @@
     routeDurations,
     startVal,
     stopVal,
-    locality,
     coords,
     geocoder,
-    route,
-    autoStartAddress = false;
+    route;
+    // autoStartAddress = false;
 
 /* Sends route request */
 function requestRoute() {
     addressArray = [];
-
-    locality = document.getElementById("city").value;
-    if (locality == '') {
-        locality = "New York, NY";
-    }
     startVal = document.getElementById("startAddress").value;
     stopVal = document.getElementById("stopAddress").value;
 
@@ -48,16 +41,23 @@ function requestRoute() {
         document.getElementById("map").style.height = "30px";
         document.getElementById("map").innerHTML = "Enter a starting location.";
         return;
-    } else {
-        if (stopVal == '') {
-            stopVal = startVal;
-        }
     }
+
+    if($('#finishSwitch').is(':checked')){
+        stopVal = startVal; // Use same start and end locations
+    }
+    
+    if(stopVal == ''){
+        document.getElementById("tbl").innerHTML = '';
+        document.getElementById("map").style.height = "30px";
+        document.getElementById("map").innerHTML = "Enter an ending location.";
+        return;
+    }   
 
     for (let i = 1; i < (numFields + 1); i++) {
         let aTemp = document.getElementById("a" + i).value;
-        if (aTemp.match(/\S/)) {
-            addressArray.push(aTemp + ", " + locality);
+        if (aTemp.match(/^(?!\s*$).+/)) {
+            addressArray.push(aTemp);
         }
     }
 
@@ -69,23 +69,28 @@ function requestRoute() {
         return;
     }
 
-    // if (coords === undefined){
-    //     document.getElementById("map").style.height = "30px";
-    //     document.getElementById("map").innerHTML = "Can't connect to Google.";
-    //     return;
-    // }
-    // Initialize variables
+    if (coords === undefined){
+        geocoder.geocode( {'address': startVal}, function(results, status) {
+            if (status == 'OK') {
+              coords = results[0].geometry.location;
+              sendDirectionsRequest();
+            } else {
+                document.getElementById("map").style.height = "30px";
+                document.getElementById("map").innerHTML = "Geocoder failure: " + status;
+                return;
+            }
+          });
+    }
+}
+function sendDirectionsRequest(){
     numDrivers = 1;
     orderedGroups = [];
     colors = defaultColors;
     orderedColors = [];
     routeDurations = [];
     mapOptions = {
-        zoom: 12,
-        center: {
-            lat: coords[0],
-            lng: coords[1]
-        },
+        zoom: 11,
+        center: coords,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         disableDefaultUI: true,
         gestureHandling: 'cooperative'
@@ -95,24 +100,24 @@ function requestRoute() {
     let waypts = [];
     for (let i = 0; i < addressArray.length; i++) {
         waypts.push({
-            location: addressArray[i] + ', ' + locality,
+            location: addressArray[i],
             stopover: true
         });
     }
 
-    let originVal, destVal;
+    // let originVal, destVal;
 
-    if (autoStartAddress){
-        originVal = startVal;
-        destVal = stopVal;
-    }else{
-       originVal = startVal + ', ' + locality;
-        destVal = stopVal + ', ' + locality;
-    }
+    // if (autoStartAddress){
+    //     originVal = startVal;
+    //     destVal = stopVal;
+    // }else{
+    //    originVal = startVal;
+    //     destVal = stopVal;
+    // }
 
     let directionsRequest = {
-        origin: originVal,
-        destination: destVal,
+        origin: startVal,
+        destination: stopVal,
         travelMode: transportation,
         waypoints: waypts,
         optimizeWaypoints: true,
@@ -120,14 +125,14 @@ function requestRoute() {
     };
 
     directionsService.route(directionsRequest, routeCallback);
-
-    $(".collapse").collapse('show');
+    console.log("Directions request sent")
 }
 
 /* Runs whenever directions are received */
 function routeCallback(response, status) {
     if (status === 'OK') {
-        // console.log("Route received.");
+        console.log("Route received.");
+        $(".collapse").collapse('show');
         let randInt = uniformRandomInt(0, colors.length - 1);
         let color = colors[randInt];
         colors.splice(randInt, 1);
@@ -233,11 +238,10 @@ function results() {
 function googleReady() {
     directionsService = new google.maps.DirectionsService();
     geocoder = new google.maps.Geocoder();
-    console.log("Google Maps is ready.")
-    getLocation();
+    console.log("Maps JavaScript API ready.");
 }
 
-
+// getLocation();
 function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(geocodeLatLng);
@@ -293,20 +297,18 @@ function makeEndptFields() {
     let d = document.createElement("div");
     d.setAttribute("class", "form-row");
     d.setAttribute("id", "endpts");
-    for (let j = 0; j < 3; j++) {
+    for (let j = 1; j < 3; j++) {
         let din = document.createElement("div");
         din.setAttribute("class", "col col-md");
+        din.setAttribute("id", "textdiv"+j);
         let inp = document.createElement("input");
         inp.setAttribute("class", "form-control");
         inp.setAttribute("type", "text");
-        if (j == 0) {
-            inp.setAttribute("placeholder", "(City)");
-            inp.setAttribute("id", "city");
-        } else if (j == 1) {
-            inp.setAttribute("placeholder", "*Start*");
+        if (j == 1) {
+            inp.setAttribute("placeholder", "Start");
             inp.setAttribute("id", "startAddress");
         } else {
-            inp.setAttribute("placeholder", "(Finish)");
+            inp.setAttribute("placeholder", "Finish");
             inp.setAttribute("id", "stopAddress");
         }
         inp.addEventListener("keyup", function (event) {
@@ -343,8 +345,10 @@ function geocodeLatLng(pos) {
         if (status === "OK") {
             if (results[0]) {
                 document.getElementById("startAddress").value = results[0].formatted_address;
+                document.getElementById('startAddress').setAttribute('placeholder','Start');
+
             }
-            autoStartAddress = true;
         }
+            
     });
 }
