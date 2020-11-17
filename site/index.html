@@ -78,6 +78,13 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
             padding: 16px;
         }
 
+        #display td {
+            max-width: 0px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .btn-sm {
             width: 120px;
             font-size: small;
@@ -104,7 +111,7 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
 
         .footer {
             position: absolute;
-            bottom: 10px;
+            bottom: 20px;
             width: 100%;
             height: 60px;
             line-height: 60px;
@@ -114,10 +121,10 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
             text-align: center;
         }
 
-        #googlelogo {
+        #logo {
             display: inline;
             /* the default for span */
-            height: 1.3em;
+            height: 2em;
         }
 
         #map {
@@ -191,7 +198,7 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
 
             CatRoute
 
-        </br></br>
+        </br>
 
             <!-- <input id="uploader" type="file" accept="image/*" capture="camera" class="uploadButton"> -->
             <!-- <input id="uploader" class="uploadButton" type="file" accept="image/*"> -->
@@ -265,7 +272,7 @@ Author: Blake Rayvid (https//github.com/brayvid)  */
     <footer class="footer">
         <div class="container" id="footertext">
             <span>
-                <a href="https://cloud.google.com/"><img id="googlelogo" src="img/cloud.png"></img></a>
+                <a href="https://blakerayvid.com/"><img id="logo" src="img/logo.png"></img></a>
             </span>
         </div>
     </footer>

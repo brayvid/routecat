@@ -38,7 +38,7 @@ function requestRoute() {
     if (startVal == '') {
         document.getElementById("tbl").innerHTML = '';
         document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter a starting location.";
+        document.getElementById("map").innerHTML = "Enter starting location.";
         return;
     }
 
@@ -49,7 +49,7 @@ function requestRoute() {
     if(stopVal == ''){
         document.getElementById("tbl").innerHTML = '';
         document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter an ending location.";
+        document.getElementById("map").innerHTML = "Enter finish location.";
         return;
     }   
 
