@@ -55,10 +55,17 @@ function requestRoute() {
 
     for (let i = 1; i < (numFields + 1); i++) {
         let aTemp = document.getElementById("a" + i).value;
+        // console.log(aTemp);
         if (aTemp.match(/^(?!\s*$).+/)) {
             addressArray.push(aTemp);
         }
     }
+
+    // console.log(addressArray.length);
+    document.getElementById("tbl").innerHTML = '';
+    document.getElementById("map").style.height = "0px";
+    document.getElementById("map").innerHTML = "";
+
 
     // Don't process when all fields are empty or only one order present
     if (addressArray.length < 1) {
@@ -73,6 +80,7 @@ function requestRoute() {
             if (status == 'OK') {
               coords = results[0].geometry.location;
               sendDirectionsRequest();
+              return;
             } else {
                 document.getElementById("map").style.height = "30px";
                 document.getElementById("map").innerHTML = "Geocoder failure: " + status;
@@ -80,6 +88,7 @@ function requestRoute() {
             }
           });
     }
+    sendDirectionsRequest();
 }
 function sendDirectionsRequest(){
     numDrivers = 1;
@@ -263,29 +272,22 @@ function addField() {
     let d = document.createElement("div");
     d.setAttribute("class", "form-row");
     d.setAttribute("id", "row" + (i + 1));
-    for (let j = 0; j < 1; j++) {
-        let din = document.createElement("div");
-        din.setAttribute("class", "col col-md-" + (12 * (j + 1)));
-        let inp = document.createElement("input");
-        inp.setAttribute("class", "form-control");
-        inp.setAttribute("type", "text");
-        if (j == 1) {
-            inp.setAttribute("placeholder", i + 1);
-            inp.setAttribute("id", "n" + (i + 1));
-        } else {
-            inp.setAttribute("placeholder", "Address");
-            inp.setAttribute("id", "a" + (i + 1));
+    let din = document.createElement("div");
+    din.setAttribute("class", "col col-md-12");
+    let inp = document.createElement("input");
+    inp.setAttribute("class", "form-control");
+    inp.setAttribute("type", "text");
+    inp.setAttribute("placeholder", "Address");
+    inp.setAttribute("id", "a" + (i + 1));
+    inp.addEventListener("keyup", function (event) {
+        // Enter key clicks assign button when any input field is selected
+        if (event.keyCode === 13) {
+            event.preventDefault();
+            document.getElementById("assign").click();
         }
-        inp.addEventListener("keyup", function (event) {
-            // Enter key clicks assign button when any input field is selected
-            if (event.keyCode === 13) {
-                event.preventDefault();
-                document.getElementById("assign").click();
-            }
-        });
-        din.appendChild(inp);
-        d.appendChild(din)
-    }
+    });
+    din.appendChild(inp);
+    d.appendChild(din)
     document.getElementById("fields").appendChild(d);
     numFields++;
 }
@@ -337,7 +339,7 @@ function geocodeLatLng(pos) {
         lat: pos.coords.latitude,
         lng: pos.coords.longitude,
     };
-    coords = [latlng.lat, latlng.lng];
+    coords = latlng;
     geocoder.geocode({
         location: latlng
     }, (results, status) => {
