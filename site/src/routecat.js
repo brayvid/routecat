@@ -34,62 +34,179 @@ function requestRoute() {
     addressArray = [];
     startVal = document.getElementById("startAddress").value;
     stopVal = document.getElementById("stopAddress").value;
+    numDrivers = parseInt(document.getElementById("driverSelect").value || "1");
 
-    if (startVal == '') {
-        document.getElementById("tbl").innerHTML = '';
-        document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter starting location.";
-        return;
+    if ($('#finishSwitch').is(':checked')) {
+        stopVal = startVal;
     }
-
-    if($('#finishSwitch').is(':checked')){
-        stopVal = startVal; // Use same start and end locations
-    }
-    
-    if(stopVal == ''){
-        document.getElementById("tbl").innerHTML = '';
-        document.getElementById("map").style.height = "30px";
-        document.getElementById("map").innerHTML = "Enter finish location.";
-        return;
-    }   
 
     for (let i = 1; i < (numFields + 1); i++) {
         let aTemp = document.getElementById("a" + i).value;
-        // console.log(aTemp);
-        if (aTemp.match(/^(?!\s*$).+/)) {
+        if (aTemp.trim() !== '') {
             addressArray.push(aTemp);
         }
     }
 
-    // console.log(addressArray.length);
-    document.getElementById("tbl").innerHTML = '';
-    document.getElementById("map").style.height = "0px";
-    document.getElementById("map").innerHTML = "";
-
-
-    // Don't process when all fields are empty or only one order present
     if (addressArray.length < 1) {
-        document.getElementById("tbl").innerHTML = '';
-        document.getElementById("map").style.height = "30px";
         document.getElementById("map").innerHTML = "Enter at least one waypoint.";
         return;
     }
 
-    if (coords === undefined){
-        geocoder.geocode( {'address': startVal}, function(results, status) {
-            if (status == 'OK') {
-              coords = results[0].geometry.location;
-              sendDirectionsRequest();
-              return;
-            } else {
-                document.getElementById("map").style.height = "30px";
-                document.getElementById("map").innerHTML = "Geocoder failure: " + status;
-                return;
-            }
-          });
-    }
-    sendDirectionsRequest();
+    geocoder.geocode({ 'address': startVal }, function (results, status) {
+        if (status === 'OK') {
+            coords = results[0].geometry.location;
+            clusterWaypoints(addressArray, numDrivers, sendClusteredRoutes);
+        } else {
+            document.getElementById("map").innerHTML = "Geocoder failure: " + status;
+        }
+    });
 }
+
+function clusterWaypoints(addresses, numDrivers, callback) {
+    let matrixService = new google.maps.DistanceMatrixService();
+    let fullAddresses = [startVal].concat(addresses);
+
+    matrixService.getDistanceMatrix({
+        origins: fullAddresses,
+        destinations: fullAddresses,
+        travelMode: transportation
+    }, function (response, status) {
+        if (status !== 'OK') {
+            document.getElementById("map").innerHTML = "Distance matrix error: " + status;
+            return;
+        }
+
+        let rows = response.rows;
+        let matrixTimes = [], averageTimes = [];
+
+        for (let i = 0; i < fullAddresses.length; i++) {
+            matrixTimes[i] = [];
+            averageTimes[i] = [];
+            for (let j = 0; j < fullAddresses.length; j++) {
+                matrixTimes[i][j] = rows[i].elements[j].duration.value;
+                averageTimes[i][j] = 0;
+            }
+        }
+
+        for (let i = 0; i < matrixTimes.length; i++) {
+            for (let j = 0; j < matrixTimes.length; j++) {
+                if (j < i) {
+                    averageTimes[j][i] = 0;
+                } else {
+                    averageTimes[j][i] = (matrixTimes[i][j] + matrixTimes[j][i]) / 2;
+                }
+            }
+        }
+
+        let avgMax = 0, avgMin = 999999999;
+        for (let i = 1; i < averageTimes.length; i++) {
+            for (let j = 1; j < i; j++) {
+                avgMax = Math.max(avgMax, averageTimes[i][j]);
+                avgMin = Math.min(avgMin, averageTimes[i][j]);
+            }
+        }
+
+        let matrixMidrange = (numDrivers == 2)
+            ? avgMin + (avgMax - avgMin) / numDrivers
+            : avgMin + (avgMax - avgMin) / 3;
+
+        let groups = [];
+        for (let i = 1; i < averageTimes.length; i++) {
+            for (let j = 1; j < i; j++) {
+                if (averageTimes[i][j] < matrixMidrange) {
+                    let placed = false;
+                    for (let k = 0; k < groups.length; k++) {
+                        if (groups[k].includes(i) || groups[k].includes(j)) {
+                            if (!groups[k].includes(i)) groups[k].push(i);
+                            if (!groups[k].includes(j)) groups[k].push(j);
+                            placed = true;
+                            break;
+                        }
+                    }
+                    if (!placed) {
+                        groups.push([i, j]);
+                    }
+                }
+            }
+        }
+
+        for (let i = 0; i < addresses.length; i++) {
+            let found = groups.some(g => g.includes(i + 1));
+            if (!found) {
+                groups.push([i + 1]);
+            }
+        }
+
+        groups = groups.map(g => g.sort()).sort(() => Math.random() - 0.5);
+        callback(groups.map(g => g.map(i => addresses[i - 1])));
+    });
+}
+
+function sendClusteredRoutes(groupedAddresses) {
+    orderedGroups = [];
+    colors = defaultColors.slice();
+    orderedColors = [];
+    routeDurations = [];
+
+    mapOptions.center = coords;
+    map = new google.maps.Map(document.getElementById("map"), mapOptions);
+
+    groupedAddresses.forEach((group, index) => {
+        let waypts = group.map(addr => ({ location: addr, stopover: true }));
+        let color = colors[index % colors.length];
+        orderedColors.push(color);
+
+        directionsService.route({
+            origin: startVal,
+            destination: stopVal,
+            travelMode: transportation,
+            waypoints: waypts,
+            optimizeWaypoints: true
+        }, function (response, status) {
+            if (status === 'OK') {
+                let route = response.routes[0];
+                let legs = route.legs;
+                let duration = 0;
+                for (let k = 0; k < legs.length; k++) {
+                    duration += legs[k].duration.value;
+                }
+                routeDurations.push(duration + dropoffSeconds * (legs.length - 1));
+                orderedGroups.push(route.waypoint_order);
+
+                let directionsRenderer = new google.maps.DirectionsRenderer({
+                    polylineOptions: { strokeColor: color },
+                    suppressMarkers: true,
+                    preserveViewport: true
+                });
+                directionsRenderer.setMap(map);
+                directionsRenderer.setDirections(response);
+
+                let origMarker = new google.maps.Marker({
+                    position: legs[0].start_location,
+                    map,
+                    icon: 'img/pins/start.png'
+                });
+
+                for (let i = 1; i < legs.length + 1; i++) {
+                    let icon = (i === legs.length)
+                        ? 'img/pins/stop.png'
+                        : 'https://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=' + i + '|ff0000|000000';
+                    new google.maps.Marker({
+                        position: legs[i - 1].end_location,
+                        map,
+                        icon: icon
+                    });
+                }
+
+                results();
+                document.getElementById("map").style.height = "300px";
+            } else {
+                document.getElementById("map").innerHTML = "Route failed: " + status;
+            }
+        });
+    });
+}
+
 function sendDirectionsRequest(){
     numDrivers = 1;
     orderedGroups = [];
