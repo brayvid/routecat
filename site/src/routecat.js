@@ -3,16 +3,9 @@
     Author: Blake Rayvid (https//github.com/brayvid)  */
 
     var initialInputRows = 6,
-    transportation = 'BICYCLING', // or 'DRIVING' or 'WALKING'
-    dropoffSeconds = 30, // rough time stopped at a waypoint
-    defaultColors = [
-        "#e6194B",
-        "#3cb44b",
-        "#4363d8",
-        "#9A6324",
-        "#f032e6",
-        "#e6194B"
-    ],
+    transportation = 'BICYCLING',
+    dropoffSeconds = 30,
+    defaultColors = [ "#e6194B", "#3cb44b", "#4363d8", "#9A6324", "#f032e6", "#e6194B" ],
     numFields = 0,
     colors,
     numDrivers,
@@ -27,7 +20,8 @@
     stopVal,
     coords,
     geocoder,
-    route;
+    routes = []; // ✅ NEW ARRAY to hold multiple routes
+
 
 /* Sends route request */
 function requestRoute() {
@@ -143,12 +137,19 @@ function clusterWaypoints(addresses, numDrivers, callback) {
 }
 
 function sendClusteredRoutes(groupedAddresses) {
+    routes = []; // ✅ Add this
     orderedGroups = [];
     colors = defaultColors.slice();
     orderedColors = [];
     routeDurations = [];
 
-    mapOptions.center = coords;
+    mapOptions = {
+        zoom: 11,
+        center: coords,
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        disableDefaultUI: true,
+        gestureHandling: 'cooperative'
+      };
     map = new google.maps.Map(document.getElementById("map"), mapOptions);
 
     groupedAddresses.forEach((group, index) => {
@@ -258,13 +259,12 @@ function routeCallback(response, status) {
     if (status === 'OK') {
         console.log("Route received.");
         $(".collapse").collapse('show');
-        let randInt = uniformRandomInt(0, colors.length - 1);
-        let color = colors[randInt];
-        colors.splice(randInt, 1);
+        let color = colors[orderedColors.length % colors.length];
         orderedColors.push(color);
         // Get route duration
-        route = response.routes[0];
-        let legs = route.legs;
+        let thisRoute = response.routes[0];
+        routes.push(thisRoute);        
+        let legs = thisRoute.legs;
         let duration = 0;
         for (let k = 0; k < legs.length; k++) {
             duration += legs[k].duration.value;
@@ -328,36 +328,38 @@ function routeCallback(response, status) {
 
 /* Updates table and console */
 function results() {
-    // Table header
     document.getElementById("tbl").innerHTML = '<table id="displayTable" class="table table-condensed"><tbody id="tablebody"></tbody></table>';
-    for (let i = 0; i < numDrivers; i++) {
+
+    for (let i = 0; i < routes.length; i++) {
         let headNode = document.createElement("TH");
-        let headText = document.createTextNode("Best route (" + (routeDurations[i] / 60).toFixed(1) + " mins)");
-        // let headColor = document.createElement("SPAN");
-        // headColor.innerHTML = " ";
+        let headText = document.createTextNode("Driver " + (i + 1) + " (" + (routeDurations[i] / 60).toFixed(1) + " mins)");
         headNode.appendChild(headText);
         headNode.style.borderBottom = "20px solid " + orderedColors[i];
-        // headNode.appendChild(headColor);
         document.getElementById("tablebody").appendChild(headNode);
     }
 
-    // Table body
-    for (let i = 1; i < route.legs.length; i++) { //  each row
+    let maxStops = Math.max(...routes.map(r => r.legs.length));
+
+    for (let step = 0; step < maxStops; step++) {
         let bodyNode = document.createElement("TR");
-        let bodyData = document.createElement("TD");
-        let bodyText= document.createTextNode((i).toString()+") "+route.legs[i].start_address);
-        bodyData.appendChild(bodyText);
-        bodyNode.appendChild(bodyData);
+        for (let r = 0; r < routes.length; r++) {
+            let bodyData = document.createElement("TD");
+            let legs = routes[r].legs;
+
+            if (step === legs.length) {
+                bodyData.appendChild(document.createTextNode("🛑 " + legs[legs.length - 1].end_address));
+            } else if (step < legs.length) {
+                bodyData.appendChild(document.createTextNode((step + 1) + ") " + legs[step].start_address));
+            } else {
+                bodyData.innerHTML = "";
+            }
+
+            bodyNode.appendChild(bodyData);
+        }
         document.getElementById("tablebody").appendChild(bodyNode);
     }
-    let bodyNode = document.createElement("TR");
-    let bodyData = document.createElement("TD");
-    bodyData.appendChild(document.createTextNode("🛑 "+route.legs[route.legs.length-1].end_address));
-    bodyNode.appendChild(bodyData);
-    document.getElementById("tablebody").appendChild(bodyNode);
-
-    // Results have been printed to screen, process is complete.
 }
+
 
 /* Called when google cloud API has loaded */
 function googleReady() {
