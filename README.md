@@ -1,35 +1,69 @@
-# RouteCat
+# RouteCat – Multi-Driver Route Planner
 https://routecat.netlify.app
-
-## Overview
 
 RouteCat is a web application designed to calculate and visualize routes with multiple waypoints using the Google Maps API. Users can input a starting point, destination, and multiple waypoints, and RouteCat will find the most optimized route. It also displays the route on a Google Map and updates a table showing the route details.
 
-## Features
+- Optimally divide deliveries among multiple drivers 
+- Use distance-based clustering to group nearby deliveries  
+- Plan efficient routes with multiple stops   
+- Visualize color-coded routes on an interactive map  
+- Display each driver’s route in a clear table format
 
-- **Multi-stop Routing**: Input a start location, end location, and multiple waypoints, and RouteCat will optimize the route.
-- **Dynamic Input Fields**: Add or remove waypoint fields as needed.
-- **Route Visualization**: The route is displayed on Google Maps with unique colored markers and lines for each segment.
-- **Geolocation Support**: Automatically set the start location using your current geolocation.
-- **Error Handling**: Provides feedback when required inputs are missing or if there are errors with the route request.
+---
+## How It Works
 
-## Usage
+1. Enter a **start** and optional **finish** location
+2. Add one or more **delivery addresses**
+3. Choose the **number of drivers**
+4. Click **ROUTE**
+5. The app:
+   - Calls Google Maps to cluster deliveries
+   - Assigns deliveries to each driver
+   - Builds and displays optimized routes
+   - Renders a summary table
 
-1. **Set Up Locations**:
-- Enter the starting address in the **Start** field.
-- Enter the destination address in the **Finish** field (or check the option to finish at the starting location).
-- Use the **Add Field** button to add additional waypoint fields for intermediate stops.
+---
 
-2. **Generate Route**:
-- Click the **Assign** button to generate the route.
-- The map will display the route, with markers for the start, waypoints, and end points. 
-- The optimized route will appear in a table below the map with the total travel time.
+## Tech Stack Overview
 
-## Geolocation Support
-To use your current location as the starting point:
-1. Ensure that the browser has permission to access your location.
-2. The starting address field will auto-fill with your current address when geolocation is activated.
+RouteCat is built as a lightweight client-side web application using:
 
-## Error Handling
-- If any required fields (e.g., start or end address) are missing, the program will display a message prompting the user to input the missing information.
-- If the geocoding or routing request fails, an error message will be shown on the map.
+### Front-End
+
+| Technology | Purpose |
+|------------|---------|
+| **HTML5**  | Structure of the app (forms, inputs, map container, etc.) |
+| **CSS3**   | Custom styles + layout adjustments for responsive behavior |
+| **Bootstrap 4** + **MDBootstrap** | UI components, layout grid, form styling |
+| **JavaScript (Vanilla)** | Core logic for routing, clustering, DOM manipulation |
+
+### Google Maps Platform
+
+| API | Use |
+|-----|-----|
+| **Google Maps JavaScript API** | Renders the interactive map |
+| **Google Maps Directions API** | Calculates optimized driving/biking/walking routes between stops |
+| **Google Maps Distance Matrix API** | Measures travel time between all address pairs to enable clustering |
+| **Geocoding API** | Translates input addresses to geographic coordinates for route calculation |
+
+### Algorithms
+
+| Module | Role |
+|--------|------|
+| **Distance Matrix–based clustering** | Custom grouping logic determines which stops go to which driver based on average travel time |
+| **Waypoint Optimization** | Uses Google’s built-in optimization to reorder stops for minimum travel time |
+
+### Other Tools
+
+| Tool | Use |
+|------|-----|
+| **jQuery** | DOM manipulation and event handling for UI actions |
+| **Font Awesome** | Icon support |
+| **Netlify Functions (optional)** | Securely load API keys using a serverless endpoint |
+
+---
+
+## License
+
+**Non-commercial use only**  
+© 2020 Blake Rayvid – https://github.com/brayvid
