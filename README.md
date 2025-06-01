@@ -1,5 +1,5 @@
 # RouteCat
-https://routecat.netlify.app
+https://routecat.blakerayvid.com
 
 RouteCat is a web application designed to calculate and visualize routes with multiple waypoints using the Google Maps API. Users can input a starting point, destination, and multiple waypoints, and RouteCat will find the most optimized route. It also displays the route on a Google Map and updates a table showing the route details.
 
