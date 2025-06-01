@@ -1,5 +1,4 @@
 # RouteCat
-https://routecat.blakerayvid.com
 
 RouteCat is a web application designed to calculate and visualize routes with multiple waypoints using the Google Maps API. Users can input a starting point, destination, and multiple waypoints, and RouteCat will find the most optimized route. It also displays the route on a Google Map and updates a table showing the route details.
 
@@ -8,6 +7,9 @@ RouteCat is a web application designed to calculate and visualize routes with mu
 - Plan efficient routes with multiple stops   
 - Visualize color-coded routes on an interactive map  
 - Display each driver’s route in a clear table format
+
+View the demo here: **[routecat.blakerayvid.com](https://routecat.blakerayvid.com)**
+
 
 ---
 ## How It Works
