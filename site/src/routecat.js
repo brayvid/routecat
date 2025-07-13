@@ -374,9 +374,12 @@ function results() {
 
 /* Called when google cloud API has loaded */
 function googleReady() {
-    directionsService = new google.maps.DirectionsService();
-    geocoder = new google.maps.Geocoder();
-    console.log("Maps JavaScript API ready.");
+  console.log("Maps JavaScript API ready.");
+  directionsService = new google.maps.DirectionsService();
+  geocoder = new google.maps.Geocoder();
+  // The following lines *must* be called *after* the API has loaded.
+  // Consider wrapping your map initialization code in this function
+  // or call it from here if it's defined elsewhere.
 }
 
 // getLocation();
