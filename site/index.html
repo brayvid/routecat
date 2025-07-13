@@ -166,15 +166,29 @@
         try {
           const response = await fetch('/.netlify/functions/return-env');
           const resObj = await response.json();
-          var JSElement = document.createElement('script');
-          var JSLink = `https://maps.googleapis.com/maps/api/js?key=${resObj.token}&callback=googleReady`;
-          JSElement.src = JSLink;
-          JSElement.async = true;  // Add the async attribute
-          document.getElementsByTagName('head')[0].appendChild(JSElement);
+          const apiKey = resObj.token;
+
+          // Dynamically create and append the script element.
+          const script = document.createElement('script');
+          script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=googleReady`;
+          script.async = true;
+          script.defer = true;  // recommended for callback
+
+          script.onerror = () => {
+            console.error('Failed to load Google Maps API');
+          };
+
+          // Append the script to the document head
+          document.head.appendChild(script);
+
+          console.log('Google Maps API script injected.');
+
         } catch (err) {
-          console.log("Could not connect to Google Maps API.");
+          console.error("Could not connect to Google Maps API.", err);
+          document.getElementById("map").innerHTML = "Failed to load map.";
         }
-      }
+      };
+
       initGoogleAPI();
   </script>
 
@@ -251,11 +265,9 @@
   </footer>
 
   <!-- UI setup script -->
-    <!-- Make sure jQuery loads first -->
-  <script>
-  (function($) { // Pass jQuery to the function scope
-
-    $(document).ready(function () {
+<script>
+    $(document).ready(function() {
+        const initialInputRows = window.INITIAL_INPUT_ROWS || 6; // Default value in case not set
         makeEndptFields();
         for (let r = 0; r < initialInputRows; r++) addField();
 
@@ -282,9 +294,7 @@
             }
         });
     });
-
-  })(jQuery); // Execute the function with jQuery as $
-  </script>
+</script>
 </body>
 
 </html>

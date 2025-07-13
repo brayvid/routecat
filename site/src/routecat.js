@@ -547,6 +547,7 @@ function removeField() {
 
 // --- Initialization ---
 (function () {
+    window.INITIAL_INPUT_ROWS = INITIAL_INPUT_ROWS;
     makeEndptFields();
     for (let r = 0; r < INITIAL_INPUT_ROWS; r++) addField();
 
