@@ -23,8 +23,9 @@ let routeDurations = [];// Duration of each route
 let startVal = "";      // Start address
 let stopVal = "";       // Stop address
 let coords = null;      // Coordinates of the starting address
-let storedPosition = null; // Store the position
-
+let geocoder = null;    // Google Maps Geocoder instance
+let directionsService = null; // Google Maps DirectionsService instance
+let storedPosition = null; // Store the geolocation position
 
 // --- DOM Element IDs (Centralized) ---
 const DOM = {
@@ -36,9 +37,9 @@ const DOM = {
     fields: "fields",
     assign: "assign",
     tbl: "tbl",
-    start:"start",
-    textdiv1:"textdiv1",
-    textdiv2:"textdiv2"
+    start: "start",
+    textdiv1: "textdiv1",
+    textdiv2: "textdiv2"
 };
 
 // --- Helper Functions ---
@@ -394,98 +395,66 @@ function results() {
     tbl.appendChild(table);
 }
 
-// --- UI Interaction Functions ---
-/**
- * Sends route request
- */
-async function requestRoute() {
-    addressArray = [];
-    startVal = document.getElementById(DOM.startAddress).value;
-    stopVal = document.getElementById(DOM.stopAddress).value;
-    numDrivers = parseInt(document.getElementById(DOM.driverSelect).value || "1");
-
-    if ($('#finishSwitch').is(':checked')) {
-        stopVal = startVal;
-    }
-
-    for (let i = 1; i < (numFields + 1); i++) {
-        let aTemp = document.getElementById("a" + i).value;
-        if (aTemp.trim() !== '') {
-            addressArray.push(aTemp);
-        }
-    }
-
-    if (addressArray.length < 1) {
-        displayMapError("Enter at least one waypoint.");
-        return;
-    }
-
-    coords = await geocodeAddress(startVal); // Await the geocoding result
-
-    if (coords) {
-        clusterWaypoints(addressArray, numDrivers, sendClusteredRoutes);
-    } else {
-        displayMapError(`Failed to geocode start address "${startVal}".`);
-    }
-}
-
 /**
  * Called when google cloud API has loaded
  */
 function googleReady() {
     try {
         console.log("Maps JavaScript API ready.");
-        geocoder = new google.maps.Geocoder();  // Initialize geocoder
-        directionsService = new google.maps.DirectionsService();
 
-        if (storedPosition) { // If we have a stored position
-            geocodeLatLng(storedPosition);  // Call geocodeLatLng
-            storedPosition = null; // Clear the stored position
-        }
+        // Initialize Google Maps services
+        window.geocoder = new google.maps.Geocoder();
+        window.directionsService = new google.maps.DirectionsService();
+
+
     } catch (error) {
         console.warn("Google Maps initialization failed:", error);
         displayMapError("Map initialization failed. Please check console.");
     }
 }
+
 /**
  * Gets the current location using the browser's geolocation API.
  */
 function getLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      storedPosition = pos; // Store the position
-    });
-  } else {
-    document.getElementById(DOM.startAddress).value = "Unknown";
-  }
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            geocodeLatLng(pos);
+        }, err => {
+            console.error("Geolocation error:", err);
+            displayMapError("Failed to get your location.");
+            document.getElementById(DOM.startAddress).value = "Unknown";
+        });
+    } else {
+        document.getElementById(DOM.startAddress).value = "Unknown";
+    }
 }
 
 /**
  * Geocodes latitude and longitude to address.
  * @param {GeolocationPosition} pos - The geolocation position object.
  */
-function geocodeLatLng(pos) {
-    const latlng = {
-        lat: pos.coords.latitude,
-        lng: pos.coords.longitude,
-    };
-    coords = latlng;
+async function geocodeLatLng(pos) {
+    try {
+        const latlng = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+        };
+        coords = latlng;
 
-    // Use geocodeAddress with the retrieved coordinates
-    callMapsApi('geocode', { latlng: latlng })
-        .then(data => {
-            if (data.results && data.results[0]) {
-                document.getElementById(DOM.startAddress).value = data.results[0].formatted_address;
-                document.getElementById(DOM.startAddress).setAttribute('placeholder', 'Start');
-            } else {
-                console.warn("Reverse geocoding failed: No results found.");
-                displayMapError("Could not determine address from current location.");
-            }
-        })
-        .catch(error => {
-            console.error("Reverse geocoding error:", error);
-            displayMapError("Failed to determine address from current location. Check console for details.");
-        });
+        // Use geocodeAddress with the retrieved coordinates
+        const data = await callMapsApi('geocode', { latlng: latlng });
+        if (data.results && data.results[0]) {
+            document.getElementById(DOM.startAddress).value = data.results[0].formatted_address;
+            document.getElementById(DOM.startAddress).setAttribute('placeholder', 'Start');
+        } else {
+            console.warn("Reverse geocoding failed: No results found.");
+            displayMapError("Could not determine address from current location.");
+        }
+    } catch (error) {
+        console.error("Reverse geocoding error:", error);
+        displayMapError("Failed to determine address from current location. Check console for details.");
+    }
 }
 
 // --- DOM Manipulation Functions ---
@@ -583,3 +552,37 @@ function removeField() {
         }
     });
 })();
+
+// --- Google Maps Loading and Initialization ---
+let mapsLoaded = false; // Track if Google Maps API is loaded
+
+const initGoogleAPI = async () => {
+    try {
+        const response = await fetch('/.netlify/functions/maps');
+        if (!response.ok) {
+            console.error("Failed to fetch maps API details from server.");
+            displayMapError("Failed to load map. Check console.");
+            return;
+        }
+        const resObj = await response.json();
+          // window.API_KEY = resObj.token;
+        const apiKey = resObj.token; // Assuming your function returns { token: API_KEY }
+
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=googleReady`;
+        script.async = true;
+        script.defer = true;
+
+        script.onerror = () => {
+            console.error('Failed to load Google Maps API script.');
+            displayMapError("Failed to load map. Check console.");
+        };
+
+        document.head.appendChild(script);
+        console.log('Google Maps API script injected.');
+
+    } catch (err) {
+        console.error("Could not connect to Google Maps API.", err);
+        displayMapError("Failed to load map. Check console.");
+    }
+};
