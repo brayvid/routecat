@@ -395,39 +395,72 @@ function results() {
     tbl.appendChild(table);
 }
 
+// --- UI Interaction Functions ---
+/**
+ * Sends route request
+ */
+window.requestRoute = async function requestRoute() {
+    addressArray = [];
+    startVal = document.getElementById(DOM.startAddress).value;
+    stopVal = document.getElementById(DOM.stopAddress).value;
+    numDrivers = parseInt(document.getElementById(DOM.driverSelect).value || "1");
+
+    if ($('#finishSwitch').is(':checked')) {
+        stopVal = startVal;
+    }
+
+    for (let i = 1; i < (numFields + 1); i++) {
+        let aTemp = document.getElementById("a" + i).value;
+        if (aTemp.trim() !== '') {
+            addressArray.push(aTemp);
+        }
+    }
+
+    if (addressArray.length < 1) {
+        displayMapError("Enter at least one waypoint.");
+        return;
+    }
+
+    coords = await geocodeAddress(startVal); // Await the geocoding result
+
+    if (coords) {
+        clusterWaypoints(addressArray, numDrivers, sendClusteredRoutes);
+    } else {
+        displayMapError(`Failed to geocode start address "${startVal}".`);
+    }
+}
+
 /**
  * Called when google cloud API has loaded
  */
 function googleReady() {
     try {
         console.log("Maps JavaScript API ready.");
-
-        // Initialize Google Maps services
-        window.geocoder = new google.maps.Geocoder();
-        window.directionsService = new google.maps.DirectionsService();
-
+        geocoder = new google.maps.Geocoder();  // Initialize geocoder
+        directionsService = new google.maps.DirectionsService();
+           window.geocoder = geocoder;
+           window.directionsService = directionsService;
 
     } catch (error) {
         console.warn("Google Maps initialization failed:", error);
         displayMapError("Map initialization failed. Please check console.");
     }
 }
-
 /**
  * Gets the current location using the browser's geolocation API.
  */
 function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(pos => {
-            geocodeLatLng(pos);
-        }, err => {
-            console.error("Geolocation error:", err);
-            displayMapError("Failed to get your location.");
-            document.getElementById(DOM.startAddress).value = "Unknown";
-        });
-    } else {
-        document.getElementById(DOM.startAddress).value = "Unknown";
-    }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(pos => {
+      geocodeLatLng(pos);
+    }, err => {
+      console.error("Geolocation error:", err);
+      displayMapError("Failed to get your location.");
+      document.getElementById(DOM.startAddress).value = "Unknown";
+    });
+  } else {
+    document.getElementById(DOM.startAddress).value = "Unknown";
+  }
 }
 
 /**
@@ -461,7 +494,7 @@ async function geocodeLatLng(pos) {
 /**
  * Adds a new row of input fields.
  */
-function addField() {
+window.addField = function addField() {
     let i = numFields;
     let d = createElement("div", { class: "form-row", id: "row" + (i + 1) });
     let din = createElement("div", { class: "col col-md-12" });
@@ -515,7 +548,7 @@ function makeEndptFields() {
 /**
  * Removes the last row of input fields.
  */
-function removeField() {
+window.removeField = function removeField() {
     if (numFields > 1) {
         const select = document.getElementById(DOM.fields);
         select.removeChild(select.lastChild);
