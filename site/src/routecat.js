@@ -374,12 +374,18 @@ function results() {
 
 /* Called when google cloud API has loaded */
 function googleReady() {
-  console.log("Maps JavaScript API ready.");
-  directionsService = new google.maps.DirectionsService();
-  geocoder = new google.maps.Geocoder();
-  // The following lines *must* be called *after* the API has loaded.
-  // Consider wrapping your map initialization code in this function
-  // or call it from here if it's defined elsewhere.
+  try {
+    console.log("Maps JavaScript API ready.");
+    directionsService = new google.maps.DirectionsService();
+    geocoder = new google.maps.Geocoder();
+    // Initialize the map or call your map initialization function here
+
+  } catch (error) {
+    // Catch any errors that occur during Google Maps initialization
+    console.warn("Google Maps initialization failed.  Ad Blocker?", error); // Log to the console, but with WARN or INFO
+    // Optionally, display a user-friendly message on the page
+    document.getElementById("map").innerHTML = "Map initialization failed. It could be due to Ad Blocker";
+  }
 }
 
 // getLocation();
