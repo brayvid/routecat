@@ -328,14 +328,22 @@ function routeCallback(response, status) {
 
 /* Updates table and console */
 function results() {
-    document.getElementById("tbl").innerHTML = '<table id="displayTable" class="table table-condensed"><tbody id="tablebody"></tbody></table>';
+    const table = document.createElement("table");
+    table.id = "displayTable";
+    table.className = "table table-condensed";
+
+    const tbody = document.createElement("tbody");
+    tbody.id = "tablebody";
+    table.appendChild(tbody);
+
+    const fragment = document.createDocumentFragment(); // Use a document fragment
 
     for (let i = 0; i < routes.length; i++) {
         let headNode = document.createElement("TH");
         let headText = document.createTextNode("Driver " + (i + 1) + " (" + (routeDurations[i] / 60).toFixed(1) + " mins)");
         headNode.appendChild(headText);
         headNode.style.borderBottom = "20px solid " + orderedColors[i];
-        document.getElementById("tablebody").appendChild(headNode);
+        fragment.appendChild(headNode);  // Append to fragment
     }
 
     let maxStops = Math.max(...routes.map(r => r.legs.length));
@@ -356,10 +364,13 @@ function results() {
 
             bodyNode.appendChild(bodyData);
         }
-        document.getElementById("tablebody").appendChild(bodyNode);
+        fragment.appendChild(bodyNode); // Append to fragment
     }
-}
 
+    tbody.appendChild(fragment); // Append the entire fragment to the tbody
+    document.getElementById("tbl").innerHTML = '';
+    document.getElementById("tbl").appendChild(table);
+}
 
 /* Called when google cloud API has loaded */
 function googleReady() {
