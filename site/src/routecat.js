@@ -23,6 +23,8 @@ let routeDurations = [];// Duration of each route
 let startVal = "";      // Start address
 let stopVal = "";       // Stop address
 let coords = null;      // Coordinates of the starting address
+let storedPosition = null; // Store the position
+
 
 // --- DOM Element IDs (Centralized) ---
 const DOM = {
@@ -433,22 +435,29 @@ async function requestRoute() {
 function googleReady() {
     try {
         console.log("Maps JavaScript API ready.");
-        // Initialize map-related services here
+        geocoder = new google.maps.Geocoder();  // Initialize geocoder
+        directionsService = new google.maps.DirectionsService();
+
+        if (storedPosition) { // If we have a stored position
+            geocodeLatLng(storedPosition);  // Call geocodeLatLng
+            storedPosition = null; // Clear the stored position
+        }
     } catch (error) {
         console.warn("Google Maps initialization failed:", error);
         displayMapError("Map initialization failed. Please check console.");
     }
 }
-
 /**
  * Gets the current location using the browser's geolocation API.
  */
 function getLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(geocodeLatLng);
-    } else {
-        document.getElementById(DOM.startAddress).value = "Unknown";
-    }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      storedPosition = pos; // Store the position
+    });
+  } else {
+    document.getElementById(DOM.startAddress).value = "Unknown";
+  }
 }
 
 /**
