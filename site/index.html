@@ -270,7 +270,7 @@
         // Ensure INITIAL_INPUT_ROWS is available from the global scope
         const initialInputRows = window.INITIAL_INPUT_ROWS || 6; // Default in case it's not set
 
-        //makeEndptFields(); // REMOVE THIS LINE - it's already called in routecat.js
+        makeEndptFields(); // REMOVE THIS LINE - it's already called in routecat.js
         for (let r = 0; r < initialInputRows; r++) addField();
 
         $("#assign").click(function () {
